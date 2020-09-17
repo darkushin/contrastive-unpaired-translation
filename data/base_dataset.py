@@ -8,6 +8,7 @@ import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
 from abc import ABC, abstractmethod
+from util import tps_warp
 
 
 class BaseDataset(data.Dataset, ABC):
@@ -81,6 +82,10 @@ def get_params(opt, size):
 
 def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
     transform_list = []
+    if opt.tps_aug:
+        transform_list.append(
+            transforms.Lambda(lambda img: __apply_tps(img, params['tps'])))
+
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
     if 'fixsize' in opt.preprocess:
@@ -228,3 +233,10 @@ def __print_size_warning(ow, oh, w, h):
               "(%d, %d). This adjustment will be done to all images "
               "whose sizes are not multiples of 4" % (ow, oh, w, h))
         __print_size_warning.has_printed = True
+
+
+def __apply_tps(img, tps_params):
+    np_im = np.array(img)
+    np_im = tps_warp.tps_warp_2(np_im, tps_params['dst'], tps_params['src'])
+    new_im = Image.fromarray(np_im)
+    return new_im

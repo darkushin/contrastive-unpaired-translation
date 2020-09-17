@@ -5,6 +5,8 @@ from data.image_folder import make_dataset
 from PIL import Image
 import random
 import util.util as util
+from util import tps_warp
+
 
 
 class SingleImageDataset(BaseDataset):
@@ -83,16 +85,20 @@ class SingleImageDataset(BaseDataset):
 
         # apply image transformation
         if self.opt.phase == "train":
-            param = {'scale_factor': self.zoom_levels_A[index],
-                     'patch_index': self.patch_indices_A[index],
-                     'flip': random.random() > 0.5}
+            param = self.get_params(self.opt, A_img.size, A_img)
+            # param = {'scale_factor': self.zoom_levels_A[index],
+            #          'patch_index': self.patch_indices_A[index],
+            #          'flip': random.random() > 0.5}
+            param['scale_factor'] = self.zoom_levels_A[index]
+            param['patch_index'] = self.patch_indices_A[index]
 
             transform_A = get_transform(self.opt, params=param, method=Image.BILINEAR)
             A = transform_A(A_img)
 
-            param = {'scale_factor': self.zoom_levels_B[index],
-                     'patch_index': self.patch_indices_B[index],
-                     'flip': random.random() > 0.5}
+            # param = {'scale_factor': self.zoom_levels_B[index],
+            #          'patch_index': self.patch_indices_B[index],
+            #          'flip': random.random() > 0.5}
+
             transform_B = get_transform(self.opt, params=param, method=Image.BILINEAR)
             B = transform_B(B_img)
         else:
@@ -106,3 +112,37 @@ class SingleImageDataset(BaseDataset):
         """ Let's pretend the single image contains 100,000 crops for convenience.
         """
         return 100000
+
+    def get_params(self, opt, size, input_im):
+        w, h = size
+        new_h = h
+        new_w = w
+        if 'resize_and_crop' in opt.preprocess:
+            new_h = new_w = opt.load_size
+        elif 'scale_width_and_crop' in opt.preprocess:
+            new_w = opt.loadSize
+            new_h = opt.loadSize * h // w
+
+        x = random.randint(0, np.maximum(0, new_w - opt.crop_size))
+        y = random.randint(0, np.maximum(0, new_h - opt.crop_size))
+
+        flip = random.random() > 0.5
+
+        if opt.tps_aug:
+            np_im = np.array(input_im)
+            src = tps_warp._get_regular_grid(np_im,
+                                             points_per_dim=opt.tps_points_per_dim)
+            dst = tps_warp._generate_random_vectors(np_im, src, scale=0.1 * w)
+            return {
+                'crop_pos': (x, y),
+                'flip': flip,
+                'tps': {
+                    'src': src,
+                    'dst': dst
+                }
+            }
+        return {
+            'crop_pos': (x, y),
+            'flip': flip
+        }
+

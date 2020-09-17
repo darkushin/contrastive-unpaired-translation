@@ -16,6 +16,8 @@ class SinCUTModel(CUTModel):
                             help='weight for the R1 gradient penalty')
         parser.add_argument('--lambda_identity', type=float, default=1.0,
                             help='the "identity preservation loss"')
+        parser.add_argument('--tps_aug', type=int, default=0, help='apply tps augmentations during training')
+        parser.add_argument('--tps_points_per_dim', type=int, default=3)
 
         parser.set_defaults(nce_includes_all_negatives_from_minibatch=True,
                             dataset_mode="singleimage",
@@ -37,13 +39,13 @@ class SinCUTModel(CUTModel):
         )
 
         if is_train:
-            parser.set_defaults(preprocess="zoom_and_patch",
-                                batch_size=16,
+            parser.set_defaults(preprocess="resize_and_crop",  # was zoom_and_patch
+                                batch_size=1,  # was one
                                 save_epoch_freq=1,
                                 save_latest_freq=20000,
                                 n_epochs=8,
                                 n_epochs_decay=8,
-
+                                crop_size=1024  # wasn't changed in the defaults
             )
         else:
             parser.set_defaults(preprocess="none",  # load the whole image as it is
