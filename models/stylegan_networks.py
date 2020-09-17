@@ -306,7 +306,10 @@ class ModulatedConv2d(nn.Module):
         if style is not None:
             style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
         else:
-            style = torch.ones(batch, 1, in_channel, 1, 1).cuda()
+            if len(self.opt.gpu_ids) > 0:
+                style = torch.ones(batch, 1, in_channel, 1, 1).cuda()
+            else:
+                style = torch.ones(batch, 1, in_channel, 1, 1).to('cpu')
         weight = self.scale * self.weight * style
 
         if self.demodulate:
