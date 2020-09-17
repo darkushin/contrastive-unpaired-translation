@@ -1,6 +1,6 @@
 import numpy as np
 import os.path
-from data.base_dataset import BaseDataset, get_transform
+from data.base_dataset import BaseDataset, get_transform, get_params
 from data.image_folder import make_dataset
 from PIL import Image
 import random
@@ -83,16 +83,15 @@ class SingleImageDataset(BaseDataset):
 
         # apply image transformation
         if self.opt.phase == "train":
-            param = {'scale_factor': self.zoom_levels_A[index],
-                     'patch_index': self.patch_indices_A[index],
-                     'flip': random.random() > 0.5}
+            param = get_params(self.opt, A_img.size, A_img)
+            param['scale_factor'] = self.zoom_levels_A[index]
+            param['patch_index'] = self.patch_indices_A[index]
 
             transform_A = get_transform(self.opt, params=param, method=Image.BILINEAR)
             A = transform_A(A_img)
 
-            param = {'scale_factor': self.zoom_levels_B[index],
-                     'patch_index': self.patch_indices_B[index],
-                     'flip': random.random() > 0.5}
+            param['scale_factor'] = self.zoom_levels_B[index]
+            param['patch_index'] = self.patch_indices_B[index]
             transform_B = get_transform(self.opt, params=param, method=Image.BILINEAR)
             B = transform_B(B_img)
         else:
@@ -105,4 +104,4 @@ class SingleImageDataset(BaseDataset):
     def __len__(self):
         """ Let's pretend the single image contains 100,000 crops for convenience.
         """
-        return 100000
+        return 10000

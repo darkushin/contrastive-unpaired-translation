@@ -16,6 +16,8 @@ class SinCUTModel(CUTModel):
                             help='weight for the R1 gradient penalty')
         parser.add_argument('--lambda_identity', type=float, default=1.0,
                             help='the "identity preservation loss"')
+        parser.add_argument('--tps_aug', type=int, default=0, help='apply tps augmentations during training')
+        parser.add_argument('--tps_points_per_dim', type=int, default=3)
 
         parser.set_defaults(nce_includes_all_negatives_from_minibatch=True,
                             dataset_mode="singleimage",
