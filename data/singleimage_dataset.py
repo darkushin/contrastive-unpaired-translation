@@ -25,7 +25,6 @@ class SingleImageDataset(BaseDataset):
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
         BaseDataset.__init__(self, opt)
-
         self.dir_A = os.path.join(opt.dataroot, 'trainA')  # create a path '/path/to/data/trainA'
         self.dir_B = os.path.join(opt.dataroot, 'trainB')  # create a path '/path/to/data/trainB'
 
@@ -35,14 +34,7 @@ class SingleImageDataset(BaseDataset):
         self.A_size = len(self.A_paths)  # get the size of dataset A
         self.B_size = len(self.B_paths)  # get the size of dataset B
 
-        assert len(self.A_paths) == 1 and len(self.B_paths) == 1,\
-            "SingleImageDataset class should be used with one image in each domain"
-        A_img = Image.open(self.A_paths[0]).convert('RGB')
-        B_img = Image.open(self.B_paths[0]).convert('RGB')
-        print("Image sizes %s and %s" % (str(A_img.size), str(B_img.size)))
-
-        self.A_img = A_img
-        self.B_img = B_img
+        # I still want to use zoom and crop, so the next steps should remain.
 
         # In single-image translation, we augment the data loader by applying
         # random scaling. Still, we design the data loader such that the
@@ -76,10 +68,14 @@ class SingleImageDataset(BaseDataset):
             A_paths (str)    -- image paths
             B_paths (str)    -- image paths
         """
-        A_path = self.A_paths[0]
-        B_path = self.B_paths[0]
-        A_img = self.A_img
-        B_img = self.B_img
+        A_path = self.A_paths[index % self.A_size]  # make sure index is within then range
+        if self.opt.serial_batches:   # make sure index is within then range
+            index_B = index % self.B_size
+        else:   # randomize the index for domain B to avoid fixed pairs.
+            index_B = random.randint(0, self.B_size - 1)
+        B_path = self.B_paths[index_B]
+        A_img = Image.open(A_path).convert('RGB')
+        B_img = Image.open(B_path).convert('RGB')
 
         # apply image transformation
         if self.opt.phase == "train":
@@ -103,6 +99,7 @@ class SingleImageDataset(BaseDataset):
         return {'A': A, 'B': B, 'A_paths': A_path, 'B_paths': B_path}
 
     def __len__(self):
-        """ Let's pretend the single image contains 100,000 crops for convenience.
         """
-        return 100000
+        The size of the dataset is the number of images created using the TPS augmentation.
+        """
+        return max(self.A_size, self.B_size)
