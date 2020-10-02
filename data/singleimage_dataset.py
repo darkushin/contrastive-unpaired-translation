@@ -5,6 +5,7 @@ from data.image_folder import make_dataset
 from PIL import Image
 import random
 import util.util as util
+import matplotlib.pyplot as plt
 
 
 class SingleImageDataset(BaseDataset):
@@ -74,6 +75,7 @@ class SingleImageDataset(BaseDataset):
         else:   # randomize the index for domain B to avoid fixed pairs.
             index_B = random.randint(0, self.B_size - 1)
         B_path = self.B_paths[index_B]
+
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
 

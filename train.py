@@ -4,6 +4,8 @@ from options.train_options import TrainOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
@@ -36,6 +38,14 @@ if __name__ == '__main__':
             batch_size = data["A"].size(0)
             total_iters += batch_size
             epoch_iter += batch_size
+
+            A_img = Image.open(data["A_paths"][0]).convert('RGB')
+            fig = plt.figure()
+            fig.add_subplot(1, 1, 1)
+            plt.imshow(A_img)
+            fig.savefig('used_train_imgs/trying_to_save.jpg')
+            print('should have printed image')
+
             if len(opt.gpu_ids) > 0:
                 torch.cuda.synchronize()
             optimize_start_time = time.time()
@@ -59,6 +69,17 @@ if __name__ == '__main__':
                 visualizer.print_current_losses(epoch, epoch_iter, losses, optimize_time, t_data)
                 if opt.display_id is None or opt.display_id > 0:
                     visualizer.plot_current_losses(epoch, float(epoch_iter) / dataset_size, losses)
+                # print training images
+                A_img = Image.open(data["A_paths"][0]).convert('RGB')
+                B_img = Image.open(data["B_paths"][0]).convert('RGB')
+                fig = plt.figure()
+                fig.add_subplot(1, 2, 1)
+                plt.imshow(A_img)
+                plt.title(f'A im: {data["A_paths"][0].split("/")[-1]}')
+                fig.add_subplot(1, 2, 2)
+                plt.imshow(B_img)
+                plt.title(f'B index: {data["B_paths"][0].split("/")[-1]}')
+                fig.show()
 
             if total_iters % opt.save_latest_freq == 0:   # cache our latest model every <save_latest_freq> iterations
                 print('saving the latest model (epoch %d, total_iters %d)' % (epoch, total_iters))
