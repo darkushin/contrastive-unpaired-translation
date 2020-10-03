@@ -1,10 +1,12 @@
 import numpy as np
 import os.path
-from data.base_dataset import BaseDataset, get_transform
+from data.base_dataset import BaseDataset, get_transform, get_params
 from data.image_folder import make_dataset
 from PIL import Image
 import random
 import util.util as util
+import matplotlib.pyplot as plt
+import torch
 
 
 class SingleImageDataset(BaseDataset):
@@ -41,8 +43,12 @@ class SingleImageDataset(BaseDataset):
         B_img = Image.open(self.B_paths[0]).convert('RGB')
         print("Image sizes %s and %s" % (str(A_img.size), str(B_img.size)))
 
-        self.A_img = A_img
-        self.B_img = B_img
+        self.A_img_orig = A_img
+        self.B_img_orig = B_img
+        self.cur_iter = 0
+        self.prev_iter = -1
+        self.cur_img_A = A_img
+        self.cur_img_B = B_img
 
         # In single-image translation, we augment the data loader by applying
         # random scaling. Still, we design the data loader such that the
@@ -76,10 +82,32 @@ class SingleImageDataset(BaseDataset):
             A_paths (str)    -- image paths
             B_paths (str)    -- image paths
         """
+        if self.cur_iter > self.prev_iter:
+            paramA = get_params(self.opt, self.cur_img_A.size, self.cur_img_A, tps_im=True)
+            # paramB = get_params(self.opt, self.cur_img_B.size, self.cur_img_B)
+            transform_A = get_transform(self.opt, paramA, method=Image.BILINEAR, tps_im=True)
+            transform_B = get_transform(self.opt, paramA, method=Image.BILINEAR, tps_im=True)
+            A_img = transform_A(self.A_img_orig)
+            B_img = transform_B(self.B_img_orig)
+            self.prev_iter = self.cur_iter
+            self.cur_img_A = A_img
+            self.cur_img_B = B_img
+        else:
+            A_img = self.cur_img_A
+            B_img = self.cur_img_B
+
         A_path = self.A_paths[0]
         B_path = self.B_paths[0]
-        A_img = self.A_img
-        B_img = self.B_img
+
+        # save the training images every 400 iters
+        if not self.cur_iter % 1000:
+            fig = plt.figure()
+            fig.add_subplot(1, 2, 1)
+            plt.imshow(A_img)
+            fig.add_subplot(1, 2, 2)
+            plt.imshow(B_img)
+            fig.suptitle(f'cur iter: {self.cur_iter}')
+            fig.savefig(f'training-images/iter-{self.cur_iter}-{np.random.randint(0, 100)}.jpg')
 
         # apply image transformation
         if self.opt.phase == "train":

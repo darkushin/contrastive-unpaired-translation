@@ -8,6 +8,7 @@ import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
 from abc import ABC, abstractmethod
+from util import tps_warp
 
 
 class BaseDataset(data.Dataset, ABC):
@@ -61,10 +62,22 @@ class BaseDataset(data.Dataset, ABC):
         pass
 
 
-def get_params(opt, size):
+def get_params(opt, size, input_im, tps_im=False):
     w, h = size
     new_h = h
     new_w = w
+    if tps_im:
+        np_im = np.array(input_im)
+        src = tps_warp._get_regular_grid(np_im,
+                                         points_per_dim=3)
+        dst = tps_warp._generate_random_vectors(np_im, src, scale=0.1 * w)
+        return {
+            'tps': {
+                'src': src,
+                'dst': dst
+            }
+        }
+
     if opt.preprocess == 'resize_and_crop':
         new_h = new_w = opt.load_size
     elif opt.preprocess == 'scale_width_and_crop':
@@ -79,8 +92,13 @@ def get_params(opt, size):
     return {'crop_pos': (x, y), 'flip': flip}
 
 
-def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
+def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True, tps_im=False):
     transform_list = []
+    if tps_im:
+        transform_list.append(
+            transforms.Lambda(lambda img: __apply_tps(img, params['tps'])))
+        return transforms.Compose(transform_list)
+
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
     if 'fixsize' in opt.preprocess:
@@ -228,3 +246,10 @@ def __print_size_warning(ow, oh, w, h):
               "(%d, %d). This adjustment will be done to all images "
               "whose sizes are not multiples of 4" % (ow, oh, w, h))
         __print_size_warning.has_printed = True
+
+
+def __apply_tps(img, tps_params):
+    np_im = np.array(img)
+    np_im = tps_warp.tps_warp_2(np_im, tps_params['dst'], tps_params['src'])
+    new_im = Image.fromarray(np_im)
+    return new_im
