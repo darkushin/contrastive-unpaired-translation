@@ -82,7 +82,7 @@ class SingleImageDataset(BaseDataset):
             A_paths (str)    -- image paths
             B_paths (str)    -- image paths
         """
-        if self.cur_iter > self.prev_iter:
+        if self.cur_iter > self.prev_iter and self.opt.phase == 'train':
             paramA = get_params(self.opt, self.cur_img_A.size, self.cur_img_A, tps_im=True)
             # paramB = get_params(self.opt, self.cur_img_B.size, self.cur_img_B)
             transform_A = get_transform(self.opt, paramA, method=Image.BILINEAR, tps_im=True)
@@ -100,14 +100,14 @@ class SingleImageDataset(BaseDataset):
         B_path = self.B_paths[0]
 
         # save the training images every 400 iters
-        if not self.cur_iter % 1000:
-            fig = plt.figure()
-            fig.add_subplot(1, 2, 1)
-            plt.imshow(A_img)
-            fig.add_subplot(1, 2, 2)
-            plt.imshow(B_img)
-            fig.suptitle(f'cur iter: {self.cur_iter}')
-            fig.savefig(f'training-images/iter-{self.cur_iter}-{np.random.randint(0, 100)}.jpg')
+        # if not self.cur_iter % 1000:
+        #     fig = plt.figure()
+        #     fig.add_subplot(1, 2, 1)
+        #     plt.imshow(A_img)
+        #     fig.add_subplot(1, 2, 2)
+        #     plt.imshow(B_img)
+        #     fig.suptitle(f'cur iter: {self.cur_iter}')
+        #     fig.savefig(f'training-images/iter-{self.cur_iter}-{np.random.randint(0, 100)}.jpg')
 
         # apply image transformation
         if self.opt.phase == "train":

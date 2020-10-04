@@ -4,7 +4,7 @@ from options.train_options import TrainOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
-
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
@@ -30,15 +30,24 @@ if __name__ == '__main__':
 
         dataset.set_epoch(epoch)
         for i, data in enumerate(dataset):  # inner loop within one epoch
-            # print(i)
             dataset.dataset.cur_iter += 1
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
 
+            if total_iters % 1000 == 0:
+                fig = plt.figure()
+                fig.add_subplot(1, 2, 1)
+                plt.imshow(dataset.dataset.cur_img_A)
+                fig.add_subplot(1, 2, 2)
+                plt.imshow(dataset.dataset.cur_img_B)
+                fig.suptitle(f'cur iter: {total_iters}')
+                fig.savefig(f'training-images/epoch-{epoch}_iter-{total_iters}.jpg')
+
             batch_size = data["A"].size(0)
             total_iters += batch_size
             epoch_iter += batch_size
+
             if len(opt.gpu_ids) > 0:
                 torch.cuda.synchronize()
             optimize_start_time = time.time()
